@@ -49,10 +49,9 @@ from airflow.decorators import task
 from airflow import DAG
 import pendulum
 
-username = "pdefusco_061223"
+username = "pdefusco_061423"
 
 print("Running as Username: ", username)
-
 
 default_args = {
         'owner': username,
@@ -74,46 +73,29 @@ with DAG(
 
     start = DummyOperator(task_id="start")
 
-    spark_sql = CDEJobRunOperator(
+    cde_job_1 = CDEJobRunOperator(
             task_id='upstream-spark-job',
             job_name='spark-sql-1'
             )
 
     read_conf = BashOperator(
         	task_id="read-resource-file-task",
-        	bash_command="cat /app/mount/my_airflow_file_resource/airflow_file_resource.txt",
+        	bash_command="cat /app/mount/SPARK_PIPELINES/cde_resource_file.txt",
             do_xcom_push=True
     	)
 
     def _print_confs(**context):
-        return context['ti'].xcom_pull(task_ids='read-resource-file-task')
+            return context['ti'].xcom_pull(task_ids='read-resource-file-task')
 
     pythonstep = PythonOperator(
-        task_id="print_file_resource_confs",
-        python_callable=_print_confs,
-    )
+            task_id="print_file_resource_confs",
+            python_callable=_print_confs
+            )
 
-    @task.branch(task_id="branch_task")
-    def branch_func(**context):
-        airflow_file_resource_value = int(context['ti'].xcom_pull(task_ids="read-resource-file-task"))
-        if airflow_file_resource_value >= 5:
-            return "continue_task"
-        elif airflow_file_resource_value >= 2 and airflow_file_resource_value < 5:
-            return "stop_task"
-        else:
-            return None
-
-    branch_op = branch_func()
-
-    continue_op = EmptyOperator(task_id="continue_task")
-    stop_op = EmptyOperator(task_id="stop_task")
-
-    cde_job = CDEJobRunOperator(
-    job_name="spark-sql-2",
-    variables={
-        {'count': 'bar'},
-    },
-    task_id="downstream-spark-job"
-    )
-
-start >> spark_sql >> read_conf >> pythonstep >> branch_op >> [continue_op, stop_op] >> cde_job
+    cde_job_2 = CDEJobRunOperator(
+            task_id="downstream-spark-job",
+            job_name="spark-sql-2",
+            variables={'count': dag_name}
+            )
+#start >> spark_sql >> read_conf >> pythonstep >> branch_op >> [continue_op, stop_op] >> cde_job
+start >> cde_job_1 >> read_conf >> pythonstep >> cde_job_2

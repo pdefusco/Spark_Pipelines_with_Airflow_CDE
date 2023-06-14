@@ -53,20 +53,24 @@ spark = SparkSession\
     .getOrCreate()
 
 # A list of Rows. Infer schema from the first row, create a DataFrame and print the schema
-rows = [Row(name="John", age=19), Row(name="Smith", age=23), Row(name="Sarah", age=18), Row(name="John", 24)]
+rows = [Row(name="John", age=19), Row(name="Smith", age=23), Row(name="Sarah", age=18), Row(name="John", age=24)]
 df = spark.createDataFrame(rows)
 df.printSchema()
 
 # Compute the Average Age
-avg_age = df.groupby('name').avg('age').collect()
+#avg_age = df.groupby('name').avg('age').show()
+avg_age = df.agg({'age': 'avg'}).collect()[0][0]
 print(avg_age)
 
 # Compute Count of Age Values
-count = df.groupby('name').count('age').collect()
+count = df.count()
 print(count)
 
 # Write average age to the File resources
-f = open("/app/mount/my_airflow_file_resource/airflow_file_resource.txt", "w")
+f = open("cde_resource_file.txt", "w")
 f.write("AVG_AGE: {}".format(avg_age))
 f.write("COUNT: {}".format(count))
 f.close()
+
+with open('cde_resource_file.txt', 'r') as f:
+    print(f.read())
