@@ -73,4 +73,4 @@ f.write("COUNT: {}".format(count))
 f.close()
 
 with open('cde_resource_file.txt', 'r') as f:
-    print(f.read())
+    print(f.readlines()())
